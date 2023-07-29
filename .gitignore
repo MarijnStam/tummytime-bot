@@ -1,3 +1,9 @@
+#Ignore constants file holding our API keys
+src/constants.py
+tummytime_venv/
+
+
+#--------START OF STANDARD PY GITIGNORE-----#
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
