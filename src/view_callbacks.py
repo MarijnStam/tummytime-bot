@@ -4,7 +4,7 @@ from log import app_logger as log
 import views
 import view_components
     
-async def symptoms_callback(self, interaction: discord.Interaction):
+async def symptoms_callback(self: view_components.SymptomsDropdown, interaction: discord.Interaction):
     assert self.view is not None
     view: views.FeelView = self.view
     
@@ -24,10 +24,8 @@ async def symptoms_callback(self, interaction: discord.Interaction):
     view.symptoms = self.values
     await interaction.response.edit_message(view=view)
     
-async def feel_button_feelback(self, interaction: discord.Interaction):
+async def feel_dropdown_feelback(self: view_components.FeelDropdown, interaction: discord.Interaction):
     assert self.view is not None
     view: views.FeelView = self.view
-    view.feel = int(self.values) 
-            
-    self.style = discord.ButtonStyle.success
+    view.feel = self.values[0]
     await interaction.response.edit_message(view=view)
