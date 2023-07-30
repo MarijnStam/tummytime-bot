@@ -1,5 +1,9 @@
 import discord
 from discord import app_commands
+
+from log import app_logger as log
+import models
+import views
 import constants
 
 BOT_FARM = discord.Object(id=constants.guild_id) 
@@ -31,16 +35,15 @@ client = TummyBot(intents=intents)
 
 @client.event
 async def on_ready():
-    print(f'Logged in as {client.user} (ID: {client.user.id})')
-    print('------')
+    log.info(f'Logged in as {client.user} (ID: {client.user.id})')
     
 
 @client.tree.command()
-async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message("Pong")
+async def symptoms(interaction: discord.Interaction):
+    await interaction.response.send_message("How are you feeling? (1 - 10)", view=views.FeelView())
     
 def start_bot():
     """Starts the Discord bot with a static token
     """    
-    print("Starting bot")
+    log.info("Starting bot")
     client.run(token=TOKEN, log_handler=None)
