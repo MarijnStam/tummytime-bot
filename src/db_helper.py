@@ -1,5 +1,8 @@
 from sqlmodel import SQLModel, Session, create_engine, engine
-import models
+from typing import List
+from datetime import datetime as time 
+
+from models import *
 
 db_file_name = "TummyTime.sqlite3"
 sqlite_url = f"sqlite:///{db_file_name}"
@@ -14,3 +17,14 @@ def create_db():
 def get_session():
     with Session(engine) as session:
         yield session
+
+def feel_entry(feel: int, symptoms: List['str']) -> Feel:
+    with Session(engine) as session:
+        db_feel = Feel(id=None, feel=feel, timestamp=timestamp())
+        session.add(db_feel)
+        session.commit()
+        session.refresh(db_feel)
+        return db_feel
+    
+def timestamp():
+    return time.now().strftime("%d/%m/%Y %H:%M:%S")

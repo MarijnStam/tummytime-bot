@@ -1,6 +1,7 @@
 import discord
 import view_components
 from typing import List
+import db_helper
         
         
 class FeelView(discord.ui.View):
@@ -9,12 +10,13 @@ class FeelView(discord.ui.View):
     
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=3)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Make sure to update the message with our updated selves
-        await interaction.response.edit_message(view=self)
+        # Enter the values into the db and respond with the registered values
+        feel = db_helper.feel_entry(self.feel, self.symptoms)
+        await interaction.response.edit_message(content=f"Feel with value of **{feel.feel}/10** registered with ID: **{feel.id}**", view=None, delete_after=5)
         
     @discord.ui.button(label='Reset', style=discord.ButtonStyle.danger, row=3)
     async def reset(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Make sure to update the message with our updated selves
+        # Spawn a new instance of the view object to reset the view and its values
         await interaction.response.edit_message(content="How are you feeling? (1 - 10)", view=FeelView())
     
     def __init__(self):            
