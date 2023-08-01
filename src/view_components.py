@@ -23,23 +23,11 @@ class SymptomsDropdown(discord.ui.Select):
 class FeelDropdown(discord.ui.Select):
     def __init__(self):
         # Set the options that will be presented inside the dropdown
-        # TODO Replace with some kind of indexed for loop
-        options = [
-            discord.SelectOption(label='1'),
-            discord.SelectOption(label='2'),
-            discord.SelectOption(label='3'),
-            discord.SelectOption(label='4'),
-            discord.SelectOption(label='5'),
-            discord.SelectOption(label='6'),
-            discord.SelectOption(label='7'),
-            discord.SelectOption(label='8'),
-            discord.SelectOption(label='9'),
-            discord.SelectOption(label='10'),
-        ]
+        options = [discord.SelectOption(label=f'{x}') for x in range(1, 11)]
 
         # The placeholder is what will be shown when no option is chosen
         super().__init__(placeholder='How are you feeling in general?', min_values=1, max_values=1, options=options)
         
     async def callback(self, interaction: discord.Interaction):
-        await view_callbacks.feel_button_feelback(self, interaction)
+        await view_callbacks.feel_dropdown_callback(self, interaction)
         

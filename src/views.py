@@ -15,7 +15,7 @@ class FeelView(discord.ui.View):
     @discord.ui.button(label='Reset', style=discord.ButtonStyle.danger, row=3)
     async def reset(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Make sure to update the message with our updated selves
-        await interaction.response.edit_message(view=self)
+        await interaction.response.edit_message(content="How are you feeling? (1 - 10)", view=FeelView())
     
     def __init__(self):            
         super().__init__()
