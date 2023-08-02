@@ -11,6 +11,9 @@ TOKEN = constants.tummy_token
 
 
 class TummyBot(discord.Client):
+    #We save this view here because message interaction is dependant upon its state
+    new_meal_view: views.NewMealView
+    
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         # A CommandTree is a special type that holds all the application command
@@ -31,16 +34,29 @@ class TummyBot(discord.Client):
         await self.tree.sync(guild=BOT_FARM)
         
 intents = discord.Intents.default()
+intents.message_content=True
 client = TummyBot(intents=intents)
 
 @client.event
 async def on_ready():
     log.info(f'Logged in as {client.user} (ID: {client.user.id})')
-    
+
+@client.event
+async def on_message(message: discord.Message):
+    if client.new_meal_view:
+        if client.new_meal_view.input_stage == 1:
+            await message.delete()
+            await client.new_meal_view.capture_ingredient(message)
 
 @client.tree.command()
-async def symptoms(interaction: discord.Interaction):
+async def feel(interaction: discord.Interaction):
     await interaction.response.send_message("How are you feeling? (1 - 10)", view=views.FeelView())
+    
+@client.tree.command()
+async def new_meal(interaction: discord.Interaction):
+    client.new_meal_view = views.NewMealView(interaction.user)
+    await interaction.response.send_modal(client.new_meal_view.meal_name_modal)
+    
     
 def start_bot():
     """Starts the Discord bot with a static token
