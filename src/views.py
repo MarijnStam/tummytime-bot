@@ -82,44 +82,39 @@ class NewMealView(discord.ui.View):
             await interaction.message.delete()
             return
         if self.input_stage == 1:
-            if len(self.ingredients) == 0:  #Undo the meal type selection and revert the view
-                self.meal_type = ""
-                self.input_stage = 0
-            else:   
-                self.ingredients.pop() #Otherwise just pop an ingredient off the list
-            
-        await self.next_input_view(interaction, undo=True)
+            self.ingredients.pop() #Otherwise just pop an ingredient off the list
+            e = self.build_embed(title="Add ingredients", color=discord.Color.gold(), 
+                                 description="Enter ingredients into chat one by one to add to this meal")
+            await interaction.response.edit_message(embed=e, view=self)
     
     def __init__(self, user: discord.User) -> None:
         super().__init__()
         self.input_stage = 0
         self.meal_name_modal = MealNameModal(self)
-        self.meal_type_dropdown = view_components.NewMealDropdown()
         self.meal_name = ""
-        self.meal_type = ""
         self.ingredients = []
         self.og_message = None
         self.user = user
+        #Start with the confirm button disabled
+        self.confirm.disabled = True
     
     async def next_input_view(self, interaction: discord.Interaction, undo: bool = False):
-        if self.input_stage == 0:                       #Capturing meal type through SelectMenu
-            self.add_item(self.meal_type_dropdown)
+        if self.input_stage == 0:                       #We get here when the Modal view has captured the meal name
             
-            #Start with the confirm button disabled
-            self.confirm.disabled = True
+             #Check whether the meal already exists before building the view
+            if db_helper.check_meal(self.meal_name) is not None:
+                await interaction.response.send_message(f"{self.meal_name} already exists in the database")
             
-            await interaction.response.send_message(embed=self.build_embed(title="Select type of meal"), view=self)\
+            #Set up for capturing ingredients of the meal through messages
+            self.confirm.disabled = False
+            e = self.build_embed(title="Add ingredients", color=discord.Color.gold(), 
+                                 description="Enter ingredients into chat one by one to add to this meal")
+            await interaction.response.send_message(embed=e, view=self)
+            self.input_stage = self.input_stage + 1
             
             #Only capture the original message if this is not an undo action
             if not undo:
                 self.og_message = await interaction.original_response()
-            
-        elif self.input_stage == 1:                     #Capturing ingredients, remove select menu on first invocation
-            self.remove_item(self.meal_type_dropdown)
-            self.confirm.disabled = False
-            e = self.build_embed(title="Add ingredients", color=discord.Color.gold(), 
-                                 description="Enter ingredients into chat one by one to add to this meal")
-            await interaction.response.edit_message(embed=e, view=self)
             
     #Capture the ingredients from message input 
     async def capture_ingredient(self, message: discord.Message):
@@ -137,7 +132,6 @@ class NewMealView(discord.ui.View):
             description=description)
         e.add_field(name="Name", value=self.meal_name, inline=True)
         e.add_field(name="Ingredients", value="\n".join(self.ingredients), inline=True)
-        e.add_field(name="Type", value=self.meal_type, inline=False)
         
         return e
     

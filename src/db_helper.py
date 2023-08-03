@@ -29,6 +29,10 @@ def feel_entry(feel: int, symptoms: List[str]) -> Feel:
         session.commit()
         session.refresh(db_feel)
         return db_feel
+
+def check_meal(meal_name: str) -> Meal | None:
+    with Session(engine) as session:
+        return session.exec(select(Ingredient).where(Ingredient.name == meal_name).one_or_none())
     
 def new_meal(meal_name: str, meal_ingredients: List[str]) -> Meal:
     with Session(engine) as session:

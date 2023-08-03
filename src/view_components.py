@@ -24,22 +24,6 @@ class SymptomsDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await view_callbacks.symptoms_callback(self, interaction)
         
-class NewMealDropdown(discord.ui.Select):
-    def __init__(self):
-        # Set the options that will be presented inside the dropdown
-        options = [
-            discord.SelectOption(label='Breakfast', emoji='🥐'),
-            discord.SelectOption(label='Lunch', emoji='🥪'),
-            discord.SelectOption(label='Dinner',  emoji='🍲'),
-            discord.SelectOption(label='Snack', emoji='🍫'),
-        ]
-
-        # The placeholder is what will be shown when no option is chosen
-        super().__init__(placeholder='What type of meal did you eat??', min_values=1, max_values=1, options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        await view_callbacks.mealtype_callback(self, interaction)
-        
 class NewMealNameInput(discord.ui.TextInput):
     def __init__(self, row: int | None = None) -> None:
         super().__init__(label="", style=TextStyle.short, placeholder="Enter the name of your meal", required=True, row=row)
