@@ -3,6 +3,7 @@ from discord.utils import MISSING
 import view_components
 from typing import List, Optional
 from datetime import datetime
+from log import app_logger as log
 
 import db_helper
         
@@ -50,7 +51,7 @@ class MealNameModal(discord.ui.Modal):
         self.add_item(self.text_input)
         
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        self.meal_view.meal_name = self.text_input.value
+        self.meal_view.meal_name = self.text_input.value.capitalize()
         await self.meal_view.next_input_view(interaction)
         
 class NewMealView(discord.ui.View):    
@@ -63,12 +64,23 @@ class NewMealView(discord.ui.View):
     message: discord.Message                #Original message of the interaction       
     user: discord.User                      #User who invoked the command
     
-    # @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=1, disabled=True)
-    # async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-    #     await interaction.message.delete()
+    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=1, disabled=True)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            db_helper.new_meal(meal_name=self.meal_name, meal_ingredients=self.ingredients)
+        except db_helper.AlreadyPresent as e:
+            log.warning(e)
+            await interaction.response.edit_message(embed=self.build_embed(title="Meal registration failed", color=discord.Color.red(), 
+                                                                  description="Meal name is already present int the db"), view=self, delete_after=10)
+            return
+            
+        await interaction.response.edit_message(embed=self.build_embed(title="New meal registered", color=discord.Color.green()), view=self, delete_after=10)
         
     @discord.ui.button(label='Undo', style=discord.ButtonStyle.danger, row=1)
     async def reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.input_stage == 0:
+            await interaction.message.delete()
+            return
         if self.input_stage == 1:
             if len(self.ingredients) == 0:  #Undo the meal type selection and revert the view
                 self.meal_type = ""
@@ -92,16 +104,24 @@ class NewMealView(discord.ui.View):
     async def next_input_view(self, interaction: discord.Interaction, undo: bool = False):
         if self.input_stage == 0:                       #Capturing meal type through SelectMenu
             self.add_item(self.meal_type_dropdown)
-            await interaction.response.send_message(embed=self.build_embed(title="Select type of meal"), view=self)
+            
+            #Start with the confirm button disabled
+            self.confirm.disabled = True
+            
+            await interaction.response.send_message(embed=self.build_embed(title="Select type of meal"), view=self)\
+            
+            #Only capture the original message if this is not an undo action
             if not undo:
                 self.og_message = await interaction.original_response()
             
         elif self.input_stage == 1:                     #Capturing ingredients, remove select menu on first invocation
             self.remove_item(self.meal_type_dropdown)
+            self.confirm.disabled = False
             e = self.build_embed(title="Add ingredients", color=discord.Color.gold(), 
                                  description="Enter ingredients into chat one by one to add to this meal")
             await interaction.response.edit_message(embed=e, view=self)
             
+    #Capture the ingredients from message input 
     async def capture_ingredient(self, message: discord.Message):
         if message.author == self.user:
             self.ingredients.append(message.content)
@@ -109,6 +129,7 @@ class NewMealView(discord.ui.View):
                                  description="Enter ingredients into chat one by one to add to this meal")
             await self.og_message.edit(embed=e, view=self)
 
+    #Helper function for building an embed for the new_meal view, updates the fields to latest values
     def build_embed(self, title: str, color: discord.Color = discord.Color.dark_blue(), description: str = None) -> discord.Embed:
         e = discord.Embed(
             title=title,

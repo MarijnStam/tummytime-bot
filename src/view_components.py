@@ -43,9 +43,6 @@ class NewMealDropdown(discord.ui.Select):
 class NewMealNameInput(discord.ui.TextInput):
     def __init__(self, row: int | None = None) -> None:
         super().__init__(label="", style=TextStyle.short, placeholder="Enter the name of your meal", required=True, row=row)
-        
-    async def callback(self, interaction: Interaction):
-        await view_callbacks.mealname_callback(self, interaction)
     
 class FeelDropdown(discord.ui.Select):
     def __init__(self):
