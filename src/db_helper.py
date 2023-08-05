@@ -2,7 +2,7 @@ from sqlmodel import SQLModel, Session, create_engine, engine, select
 from sqlalchemy.exc import IntegrityError
 from typing import List
 from datetime import datetime as time 
-
+from discord_bot import get_session
 
 from models import *
 
@@ -17,65 +17,66 @@ class AlreadyPresent(Exception):
 
 def create_db():
     SQLModel.metadata.create_all(engine)
-    
-def get_session():
-    with Session(engine) as session:
-        yield session
 
-def feel_entry(feel: int, symptoms: List[str]) -> Feel:
-    with Session(engine) as session:
-        db_feel = Feel(id=None, feel=feel, timestamp=timestamp())
-        session.add(db_feel)
-        session.commit()
-        session.refresh(db_feel)
-        return db_feel
+async def feel_entry(feel: int, symptoms: List[str]) -> Feel:
+    session = get_session()
+    session.expire_on_commit = False
+    db_feel = Feel(id=None, feel=feel, timestamp=timestamp())
+    session.add(db_feel)
+    session.commit()
+    session.refresh(db_feel)
+    return db_feel
 
-def check_meal(meal_name: str) -> Meal | None:
-    with Session(engine) as session:
-        return session.exec(select(Meal).where(Meal.name == meal_name).one_or_none())
+async def check_meal(meal_name: str) -> Meal | None:
+    session = get_session()
+    session.expire_on_commit = False
+    meal: Meal = session.exec(select(Meal).where(Meal.name == meal_name)).one_or_none()
+    return meal
     
-def all_meals() -> List[Meal]:
-    with Session(engine) as session:
-        results =  session.exec(select(Meal)).fetchall()
-        return results
+async def all_meals() -> List[Meal]:
+    session = get_session()
+    session.expire_on_commit = False
+    results =  session.exec(select(Meal)).fetchall()
+    return results
     
-def new_meal(meal_name: str, meal_ingredients: List[str]) -> Meal:
-    with Session(engine) as session:
-        meal = Meal(name=meal_name)
+async def new_meal(meal_name: str, meal_ingredients: List[str]) -> Meal:
+    session = get_session()
+    session.expire_on_commit = False
+    meal = Meal(name=meal_name)
         
-        session.add(meal)
+    session.add(meal)
+    try:
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        raise AlreadyPresent(f"Meal with name {meal_name} already present in database")
+        
+    ingredients = [Ingredient(name=x) for x in meal_ingredients]
+    #We need to check what ingredients already exist in our DB. 
+    for ingredient in ingredients:
+        session.add(ingredient)
         try:
             session.commit()
         except IntegrityError as e:
             session.rollback()
-            raise AlreadyPresent(f"Meal with name {meal_name} already present in database")
-            
-        ingredients = [Ingredient(name=x) for x in meal_ingredients]
-        #We need to check what ingredients already exist in our DB. 
-        for ingredient in ingredients:
-            session.add(ingredient)
-            try:
-                session.commit()
-            except IntegrityError as e:
-                session.rollback()
+    
+            #Retrieve the ID of the already existing ingredient
+            db_ingredient = session.exec(select(Ingredient).where(Ingredient.name == f"{ingredient.name}")).one_or_none()
+            if db_ingredient:
+                ingredient.id = db_ingredient.id  
+            else:
+                raise e.add_detail(f"Ingredient already in DB but not found under name {ingredient.name}")
+            pass
         
-                #Retrieve the ID of the already existing ingredient
-                db_ingredient = session.exec(select(Ingredient).where(Ingredient.name == f"{ingredient.name}")).one_or_none()
-                if db_ingredient:
-                    ingredient.id = db_ingredient.id  
-                else:
-                    raise e.add_detail(f"Ingredient already in DB but not found under name {ingredient.name}")
-                pass
-            
-            #Manually patch the join table
-            finally:
-                session.add(MealIngredient(meal_id=meal.id, ingredient_id=ingredient.id))
-                session.commit()
-                session.flush()
+        #Manually patch the join table
+        finally:
+            session.add(MealIngredient(meal_id=meal.id, ingredient_id=ingredient.id))
+            session.commit()
+            session.flush()
 
-        session.refresh(meal)
-        
-        return meal
+    session.refresh(meal)
+    
+    return meal
     
 def timestamp():
     return time.now().strftime("%d/%m/%Y %H:%M:%S")

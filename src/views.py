@@ -6,6 +6,7 @@ from datetime import datetime
 from log import app_logger as log
 
 import db_helper
+import models
         
         
 class FeelView(discord.ui.View):
@@ -15,13 +16,16 @@ class FeelView(discord.ui.View):
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=3)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Enter the values into the db and respond with the registered values
-        feel = db_helper.feel_entry(self.feel, self.symptoms)
+        feel = await db_helper.feel_entry(self.feel, self.symptoms)
         embed=discord.Embed(
             title=f"Feelings entry registered",
             color=discord.Color.green(),
             timestamp=datetime.strptime(feel.timestamp, "%d/%m/%Y %H:%M:%S"))
         embed.add_field(name="You are feeling", value=f"**{feel.feel}/10**", inline=True)
-        embed.add_field(name="Symptoms", value="\n".join(self.symptoms), inline=False)
+        if not self.symptoms:
+            embed.add_field(name="Symptoms", value="None! Nice :)", inline=False)
+        else:
+            embed.add_field(name="Symptoms", value="\n".join(self.symptoms), inline=False)
             
         await interaction.response.edit_message(content="",embed=embed, view=None)
         
@@ -67,7 +71,7 @@ class NewMealView(discord.ui.View):
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=1, disabled=True)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
-            db_helper.new_meal(meal_name=self.meal_name, meal_ingredients=self.ingredients)
+            await db_helper.new_meal(meal_name=self.meal_name, meal_ingredients=self.ingredients)
         except db_helper.AlreadyPresent as e:
             log.warning(e)
             await interaction.response.edit_message(embed=self.build_embed(title="Meal registration failed", color=discord.Color.red(), 
@@ -102,7 +106,7 @@ class NewMealView(discord.ui.View):
         if self.input_stage == 0:                       #We get here when the Modal view has captured the meal name
             
              #Check whether the meal already exists before building the view
-            if db_helper.check_meal(self.meal_name) is not None:
+            if await db_helper.check_meal(self.meal_name) is not None:
                 await interaction.response.send_message(f"{self.meal_name} already exists in the database")
             
             #Set up for capturing ingredients of the meal through messages
@@ -136,6 +140,21 @@ class NewMealView(discord.ui.View):
         return e
     
 class MealEntryView(discord.ui.View):
-    def __init__(self, *, timeout: float | None = 180):
+    meal: models.Meal       #The meal selected upon command invocation
+    
+    def __init__(self, *, timeout: float | None = 180, meal: models.Meal):
         super().__init__(timeout=timeout)
+        self.meal = meal
 
+
+    #Helper function for building an embed for the new_meal view, updates the fields to latest values
+    async def build_embed(self, title: str, color: discord.Color = discord.Color.dark_blue(), description: str = None) -> discord.Embed:
+        e = discord.Embed(
+            title=title,
+            color=color,
+            description=description)
+        ingredients = [x.name for x in self.meal.ingredients]
+        e.add_field(name="Name", value=self.meal.name, inline=True)
+        e.add_field(name="Ingredients", value="\n".join(ingredients), inline=True)
+        
+        return e
