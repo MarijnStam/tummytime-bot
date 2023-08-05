@@ -32,7 +32,12 @@ def feel_entry(feel: int, symptoms: List[str]) -> Feel:
 
 def check_meal(meal_name: str) -> Meal | None:
     with Session(engine) as session:
-        return session.exec(select(Ingredient).where(Ingredient.name == meal_name).one_or_none())
+        return session.exec(select(Meal).where(Meal.name == meal_name).one_or_none())
+    
+def all_meals() -> List[Meal]:
+    with Session(engine) as session:
+        results =  session.exec(select(Meal)).fetchall()
+        return results
     
 def new_meal(meal_name: str, meal_ingredients: List[str]) -> Meal:
     with Session(engine) as session:

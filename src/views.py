@@ -135,5 +135,7 @@ class NewMealView(discord.ui.View):
         
         return e
     
-        
+class MealEntryView(discord.ui.View):
+    def __init__(self, *, timeout: float | None = 180):
+        super().__init__(timeout=timeout)
 
