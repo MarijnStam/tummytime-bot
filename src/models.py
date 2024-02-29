@@ -1,55 +1,47 @@
 from typing import Optional, List
+from dataclasses import dataclass
+from enum import Enum
 
-from sqlmodel import SQLModel, Field, Relationship
+# --------------- ENUM TYPES ------------------ #
+# --------------------------------------------- # 
+class MealType(Enum):
+    BREAKFAST = 1
+    LUNCH = 2
+    DINNER = 3
+    SNACK = 4
 
-    
-# Join tables for setting up the many-to-many relations
-class MealIngredient(SQLModel, table=True):
-    meal_id: Optional[int] = Field(
-        default=None, foreign_key="meal.id", primary_key=True
-    )
-    ingredient_id: Optional[int] = Field(
-        default=None, foreign_key="ingredient.id", primary_key=True
-    )
-    
-class MealEntryIngredients(SQLModel, table=True):
-    meal_entry_id: Optional[int] = Field(
-        default=None, foreign_key="mealentry.id", primary_key=True
-    )
-    ingredient_id: Optional[int] = Field(
-        default=None, foreign_key="ingredient.id", primary_key=True
-    )
-    
+class FeelSymptoms(Enum):
+    Bloated = 1
+    Nausea = 2
+    Diarrhea = 3
+    Constipated = 4
+    Gassy = 5
+
 # ------------ Ingredient Model --------------- #
-# --------------------------------------------- #    
-class Ingredient(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(index=True, unique=True)
-    meals: List["Meal"] = Relationship(back_populates="ingredients", link_model=MealIngredient)
-    meal_entries: List["MealEntry"] = Relationship(back_populates="ingredients", link_model=MealEntryIngredients)
+# --------------------------------------------- #  
+@dataclass  
+class Ingredient:
+    name: str
+
+# ---------------- Meal Model ----------------- #
+# --------------------------------------------- #
+@dataclass
+class Meal:
+    name: str 
+    ingredients: List[Ingredient]
     
 # ------------- MealEntry Model --------------- #
 # --------------------------------------------- #    
-class MealEntry(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+@dataclass
+class MealEntry:
     timestamp: str
-    meal_id: Optional[int] = Field(default=None, foreign_key="meal.id")
-    meal: Optional["Meal"] = Relationship(back_populates="meal_entries")
-    ingredients: List[Ingredient] = Relationship(back_populates="meal_entries", link_model=MealEntryIngredients)
+    meal: Meal
+    ingredients: List[Ingredient]
     
-# ---------------- Meal Model ----------------- #
-# --------------------------------------------- #
-class Meal(SQLModel, table=True):
-    name: str = Field(index=True, unique=True)
-    id: Optional[int] = Field(default=None, primary_key=True)
-    ingredients: List[Ingredient] = Relationship(back_populates="meals", link_model=MealIngredient)
-    meal_entries: Optional[List[MealEntry]] = Relationship(back_populates="meal")
-    
+
 # --------------- Feel Model ------------------ #
 # --------------------------------------------- #       
-class Feel(SQLModel, table=True):
+@dataclass
+class Feel:
     timestamp: str
     feel: int
-    id: Optional[int] = Field(default=None, primary_key=True)
-
-    

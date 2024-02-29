@@ -18,6 +18,7 @@ class SymptomsDropdown(discord.ui.Select):
             discord.SelectOption(label='Nausea', emoji='🤮'),
             discord.SelectOption(label='Diarrhea',  emoji='🏃‍♂️'),
             discord.SelectOption(label='Constipated', emoji='🛑'),
+            discord.SelectOption(label='Gassy', emoji='☁'),
         ]
 
         # The placeholder is what will be shown when no option is chosen
