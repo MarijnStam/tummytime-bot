@@ -4,8 +4,8 @@ import view_components
 from typing import List, Optional
 from datetime import datetime
 from log import app_logger as log
+from .main import timestamp
 
-import db_helper
 import models
         
 class FeelView(discord.ui.View):
@@ -14,13 +14,14 @@ class FeelView(discord.ui.View):
     
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=3)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Enter the values into the db and respond with the registered values
-        feel = await db_helper.feel_entry(self.feel, self.symptoms)
+        # Enter the values and post to the WebApp API
+        # feel = await db_helper.feel_entry(self.feel, self.symptoms)
+
         embed=discord.Embed(
             title=f"Feelings entry registered",
             color=discord.Color.green(),
-            timestamp=datetime.strptime(feel.timestamp, "%d/%m/%Y %H:%M:%S"))
-        embed.add_field(name="You are feeling", value=f"**{feel.feel}/10**", inline=True)
+            timestamp=datetime.strptime(timestamp(), "%d/%m/%Y %H:%M:%S"))
+        embed.add_field(name="You are feeling", value=f"**{self.feel}/10**", inline=True)
         if not self.symptoms:
             embed.add_field(name="Symptoms", value="None! Nice :)", inline=False)
         else:
@@ -71,15 +72,17 @@ class NewMealView(discord.ui.View):
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=1, disabled=True)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.input_stage = 2
-        try:
-            meal = await db_helper.new_meal(meal_name=self.meal_name, meal_ingredients=self.ingredients)
-        except db_helper.AlreadyPresent as e:
-            log.warning(e)
-            await interaction.response.edit_message(embed=self.build_embed(title="Meal registration failed", color=discord.Color.red(), 
-                                                                  description="Meal name is already present int the db"), view=self, delete_after=10)
-            return
+
+        #TODO Post to WebApp API instead of local DB
+        # try:
+        #     meal = await db_helper.new_meal(meal_name=self.meal_name, meal_ingredients=self.ingredients)
+        # except db_helper.AlreadyPresent as e:
+        #     log.warning(e)
+        #     await interaction.response.edit_message(embed=self.build_embed(title="Meal registration failed", color=discord.Color.red(), 
+        #                                                           description="Meal name is already present int the db"), view=self, delete_after=10)
+        #     return
         
-        self.registered_meals.append(meal)
+        # self.registered_meals.append(meal)
         await interaction.response.edit_message(embed=self.build_embed(title="New meal registered", color=discord.Color.green()), view=self, delete_after=10)
         
     @discord.ui.button(label='Undo', style=discord.ButtonStyle.danger, row=1)
@@ -109,8 +112,9 @@ class NewMealView(discord.ui.View):
         if self.input_stage == 0:                       #We get here when the Modal view has captured the meal name
             
              #Check whether the meal already exists before building the view
-            if await db_helper.check_meal(self.meal_name) is not None:
-                await interaction.response.send_message(f"{self.meal_name} already exists in the database")
+            #TODO Replace by a GET to the WebApp API
+            # if await db_helper.check_meal(self.meal_name) is not None:
+            #     await interaction.response.send_message(f"{self.meal_name} already exists in the database")
             
             #Set up for capturing ingredients of the meal through messages
             self.confirm.disabled = False
