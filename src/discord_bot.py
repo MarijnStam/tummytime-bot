@@ -21,6 +21,7 @@ class TummyBot(discord.Client):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
         self.new_meal_view = None
+        self.registered_meals = None
         
     async def setup_hook(self):
         self.tree.copy_global_to(guild=BOT_FARM)

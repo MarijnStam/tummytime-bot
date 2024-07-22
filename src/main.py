@@ -1,7 +1,6 @@
 from log import setup_logger, app_logger
 from version import *
 from discord_bot import start_bot
-import time
 
 def main():
     setup_logger()
@@ -10,6 +9,3 @@ def main():
     
 if __name__ == "__main__":
     main()
-
-def timestamp():
-    return time.now().strftime("%d/%m/%Y %H:%M:%S")
