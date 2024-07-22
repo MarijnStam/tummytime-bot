@@ -1,0 +1,2 @@
+* Store symptoms as a bitfield in a feel entry using enums 
+* Visualize data using Grafana in Django
