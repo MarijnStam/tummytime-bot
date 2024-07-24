@@ -5,27 +5,27 @@ from typing import List, Optional
 from datetime import datetime
 from log import app_logger as log
 from timestamp_utility import timestamp
-
+import api_helper
 import models
-        
+
 class FeelView(discord.ui.View):
-    feel: int
-    symptoms: List[str]
+    feel: models.Feel
     
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=3)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Enter the values and post to the WebApp API
-        # feel = await db_helper.feel_entry(self.feel, self.symptoms)
+        self.feel.timestamp = timestamp()
+        await api_helper.post_feel(self.feel)
 
         embed=discord.Embed(
             title=f"Feelings entry registered",
             color=discord.Color.green(),
-            timestamp=datetime.strptime(timestamp(), "%d/%m/%Y %H:%M:%S"))
-        embed.add_field(name="You are feeling", value=f"**{self.feel}/10**", inline=True)
-        if not self.symptoms:
+            timestamp=datetime.strptime(self.feel.timestamp, "%Y-%m-%dT%H:%M"))
+        embed.add_field(name="You are feeling", value=f"**{self.feel.feel_nr}/10**", inline=True)
+        if not self.feel.symptoms:
             embed.add_field(name="Symptoms", value="None! Nice :)", inline=False)
         else:
-            embed.add_field(name="Symptoms", value="\n".join(self.symptoms), inline=False)
+            embed.add_field(name="Symptoms", value="\n".join([x.name for x in models.FeelSymptoms if (x in self.feel.symptoms)]), inline=False)
             
         await interaction.response.edit_message(content="",embed=embed, view=None)
         
@@ -36,8 +36,7 @@ class FeelView(discord.ui.View):
     
     def __init__(self):            
         super().__init__()
-        self.feel = None
-        self.symptoms = None
+        self.feel = models.Feel()
         
         #First add the feel dropdown
         self.add_item(view_components.FeelDropdown())

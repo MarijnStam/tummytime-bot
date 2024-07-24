@@ -14,11 +14,11 @@ class SymptomsDropdown(discord.ui.Select):
     def __init__(self):
         # Set the options that will be presented inside the dropdown
         options = [
-            discord.SelectOption(label='Bloated', emoji='🎈'),
-            discord.SelectOption(label='Nausea', emoji='🤮'),
-            discord.SelectOption(label='Diarrhea',  emoji='🏃‍♂️'),
-            discord.SelectOption(label='Constipated', emoji='🛑'),
-            discord.SelectOption(label='Gassy', emoji='☁'),
+            discord.SelectOption(label='Bloated', emoji='🎈', value=1),
+            discord.SelectOption(label='Nausea', emoji='🤮', value=2),
+            discord.SelectOption(label='Diarrhea',  emoji='🏃‍♂️', value=4),
+            discord.SelectOption(label='Constipated', emoji='🛑', value=8),
+            discord.SelectOption(label='Gassy', emoji='☁', value=16),
         ]
 
         # The placeholder is what will be shown when no option is chosen
