@@ -1,6 +1,7 @@
 from typing import Optional, List
-from dataclasses import dataclass
-from enum import Enum
+from dataclasses import dataclass, field
+from dataclasses_json import dataclass_json
+from enum import Enum, Flag
 
 # --------------- ENUM TYPES ------------------ #
 # --------------------------------------------- # 
@@ -10,38 +11,43 @@ class MealType(Enum):
     DINNER = 3
     SNACK = 4
 
-class FeelSymptoms(Enum):
+class FeelSymptoms(Flag):
     Bloated = 1
     Nausea = 2
-    Diarrhea = 3
-    Constipated = 4
-    Gassy = 5
+    Diarrhea = 4
+    Constipated = 8
+    Gassy = 16
 
 # ------------ Ingredient Model --------------- #
 # --------------------------------------------- #  
+@dataclass_json
 @dataclass  
 class Ingredient:
-    name: str
+    name: str = None
 
 # ---------------- Meal Model ----------------- #
 # --------------------------------------------- #
+@dataclass_json
 @dataclass
 class Meal:
-    name: str 
-    ingredients: List[Ingredient]
+    name: str = None
+    ingredients: List[Ingredient] = field(default_factory=list)
     
 # ------------- MealEntry Model --------------- #
 # --------------------------------------------- #    
+@dataclass_json
 @dataclass
 class MealEntry:
-    timestamp: str
-    meal: Meal
-    ingredients: List[Ingredient]
+    timestamp: str = None
+    meal: Meal = None
+    ingredients: List[Ingredient] = field(default_factory=list)
     
 
 # --------------- Feel Model ------------------ #
 # --------------------------------------------- #       
+@dataclass_json
 @dataclass
 class Feel:
-    timestamp: str
-    feel: int
+    timestamp: str = None
+    feel_nr: int = None
+    symptoms: FeelSymptoms = FeelSymptoms(0)
