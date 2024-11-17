@@ -54,23 +54,32 @@ class MealNameModal(discord.ui.Modal):
         self.add_item(self.text_input)
         
     async def on_submit(self, interaction: discord.Interaction) -> None:
-        self.meal_view.meal_name = self.text_input.value.capitalize()
+        self.meal_view.registered_meals = await api_helper.get_meals()
+        
+        self.meal_view.meal.meal_name = self.text_input.value.capitalize()
+        
+        for meal in self.meal_view.registered_meals:
+            if self.meal_view.meal.meal_name == meal.meal_name:
+                await interaction.response.send_message("Meal already exists!")
+                return
+
         await self.meal_view.next_input_view(interaction)
         
 class NewMealView(discord.ui.View):    
     input_stage: int                        #The input stage of the view. Name of meal -> Ingredients
-    meal_type: str                          #Entered type of the meal
     meal_type_dropdown: discord.ui.Select   #Dropdown for the type of meal
     meal_name_modal: discord.ui.Modal       #Modal input for the name
-    meal_name: str                          #Name of the meal
-    ingredients: List[str]                  #List of ingredients      
+    meal: models.Meal                       #Model which holds all meal info
     message: discord.Message                #Original message of the interaction       
     user: discord.User                      #User who invoked the command
     registered_meals: List[models.Meal]     #List of registered meals we append to on success
+    registered_ingredients: List[models.Ingredient] #List of ingredients already registered on the backend
     
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.success, row=1, disabled=True)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.input_stage = 2
+        self.confirm.disabled = True
+        self.reset.disabled = True
 
         #TODO Post to WebApp API instead of local DB
         # try:
@@ -81,7 +90,8 @@ class NewMealView(discord.ui.View):
         #                                                           description="Meal name is already present int the db"), view=self, delete_after=10)
         #     return
         
-        # self.registered_meals.append(meal)
+        response = await api_helper.post_meal(self.meal)
+
         await interaction.response.edit_message(embed=self.build_embed(title="New meal registered", color=discord.Color.green()), view=self, delete_after=10)
         
     @discord.ui.button(label='Undo', style=discord.ButtonStyle.danger, row=1)
@@ -90,26 +100,28 @@ class NewMealView(discord.ui.View):
             await interaction.message.delete()
             return
         if self.input_stage == 1:
-            self.ingredients.pop() #Otherwise just pop an ingredient off the list
+            self.meal.ingredients.pop() #Otherwise just pop an ingredient off the list
             e = self.build_embed(title="Add ingredients", color=discord.Color.gold(), 
                                  description="Enter ingredients into chat one by one to add to this meal")
             await interaction.response.edit_message(embed=e, view=self)
     
-    def __init__(self, user: discord.User, registered_meals: List[models.Meal]) -> None:
+    def __init__(self, user: discord.User) -> None:
         super().__init__()
         self.input_stage = 0
         self.meal_name_modal = MealNameModal(self)
-        self.meal_name = ""
-        self.ingredients = []
+        self.meal = models.Meal()
         self.og_message = None
         self.user = user
-        self.registered_meals = registered_meals
+        self.registered_meals = []
         #Start with the confirm button disabled
         self.confirm.disabled = True
+        self.registered_ingredients = []
     
     async def next_input_view(self, interaction: discord.Interaction, undo: bool = False):
         if self.input_stage == 0:                       #We get here when the Modal view has captured the meal name
             
+            #Fetch the ingredients already registered
+            self.registered_ingredients = await api_helper.get_ingredients()
              #Check whether the meal already exists before building the view
             #TODO Replace by a GET to the WebApp API
             # if await db_helper.check_meal(self.meal_name) is not None:
@@ -129,7 +141,19 @@ class NewMealView(discord.ui.View):
     #Capture the ingredients from message input 
     async def capture_ingredient(self, message: discord.Message):
         if message.author == self.user:
-            self.ingredients.append(message.content)
+            ingredient = models.Ingredient(message.content.capitalize())
+            
+            #Post the ingredient to the REST API so we can pass the PK value along with the meal
+
+            #Try and match the entered ingredient to any already existing ingredients
+            for registered_ingredient in self.registered_ingredients:
+                if ingredient.name == registered_ingredient.name:
+                    ingredient.id = registered_ingredient.id
+                    
+            if ingredient.id is None:
+                ingredient = await api_helper.post_ingredient(ingredient)
+                
+            self.meal.ingredients.append(ingredient)
             e = self.build_embed(title="Add ingredients", color=discord.Color.gold(), 
                                  description="Enter ingredients into chat one by one to add to this meal")
             await self.og_message.edit(embed=e, view=self)
@@ -140,8 +164,8 @@ class NewMealView(discord.ui.View):
             title=title,
             color=color,
             description=description)
-        e.add_field(name="Name", value=self.meal_name, inline=True)
-        e.add_field(name="Ingredients", value="\n".join(self.ingredients), inline=True)
+        e.add_field(name="Name", value=self.meal.meal_name, inline=True)
+        e.add_field(name="Ingredients", value="\n".join(x.name for x in self.meal.ingredients), inline=True)
         
         return e
     
@@ -174,7 +198,7 @@ class MealEntryView(discord.ui.View):
     def build_embed(self, color: discord.Color = discord.Color.dark_teal(), description: str = None) -> discord.Embed:
         ingredients = [x.name for x in self.meal.ingredients]
         e = discord.Embed(
-            title=self.meal.name,
+            title=self.meal.meal_name,
             color=color,
             description=description)
         ingredients = [x.name for x in self.meal.ingredients]

@@ -12,11 +12,17 @@ class MealType(Enum):
     SNACK = 4
 
 class FeelSymptoms(Flag):
-    Bloated = 1
-    Nausea = 2
-    Diarrhea = 4
+    Bloated     = 1
+    Nausea      = 2
+    Diarrhea    = 4
     Constipated = 8
-    Gassy = 16
+    Gassy       = 16
+
+class MealType(Flag):
+    Breakfast   = 1
+    Lunch       = 2
+    Dinner      = 4
+    Snack       = 8
 
 # ------------ Ingredient Model --------------- #
 # --------------------------------------------- #  
@@ -24,13 +30,14 @@ class FeelSymptoms(Flag):
 @dataclass  
 class Ingredient:
     name: str = None
+    id: int = None
 
 # ---------------- Meal Model ----------------- #
 # --------------------------------------------- #
 @dataclass_json
 @dataclass
 class Meal:
-    name: str = None
+    meal_name: str = None
     ingredients: List[Ingredient] = field(default_factory=list)
     
 # ------------- MealEntry Model --------------- #

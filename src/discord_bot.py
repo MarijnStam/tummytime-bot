@@ -15,13 +15,11 @@ TOKEN = constants.tummy_token
 class TummyBot(discord.Client):
     #We save this view here because message interaction is dependant upon its state
     new_meal_view: views.NewMealView        #Active new_meal_view attached, used for capturing messages
-    registered_meals: List[models.Meal]     #List of all meals in the db, used for autocomplete
     
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
         self.new_meal_view = None
-        self.registered_meals = None
         
     async def setup_hook(self):
         self.tree.copy_global_to(guild=BOT_FARM)
@@ -51,7 +49,7 @@ async def feel(interaction: discord.Interaction):
 #Command for registering a New Meal
 @client.tree.command()
 async def new_meal(interaction: discord.Interaction):
-    client.new_meal_view = views.NewMealView(interaction.user, client.registered_meals)
+    client.new_meal_view = views.NewMealView(interaction.user)
     await interaction.response.send_modal(client.new_meal_view.meal_name_modal)
 
 #TODO FIX ME      
